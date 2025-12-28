@@ -80,7 +80,12 @@ export const citiesData = [
         name: 'IDS BK mobile app',
         description: 'Official app - Route planning, real-time info, ticket purchase',
         platforms: ['Android', 'iOS'],
-        features: ['Route planning', 'Real-time information', 'Ticket purchase', 'Often cheaper than paper tickets']
+        features: ['Route planning', 'Real-time information', 'Ticket purchase', 'Often cheaper than paper tickets'],
+        links: {
+          android: 'https://play.google.com/store/apps/details?id=com.casperise.urbi.online.bid&hl=sk',
+          ios: 'https://apps.apple.com/sk/app/ids-bk-cestujeme-jednoduch%C5%A1ie/id1360894243',
+          info: 'https://www.idsbk.sk/'
+        }
       },
       {
         name: 'DPB city transport app',
