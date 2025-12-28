@@ -1,0 +1,531 @@
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
+import './App.css';
+
+// Mock data - in production this would come from a backend
+const initialCities = [
+  {
+    id: 'bratislava',
+    name: 'Bratislava',
+    country: 'Slovakia',
+    image: 'https://www.welcometobratislava.eu/wp-content/uploads/2017/10/dt-public-transport.jpg',
+    ticketing: {
+      types: ['Single ticket (15 min)', 'Single ticket (30 min)', 'Single ticket (60 min)', 'Daily pass', 'Weekly pass', 'Monthly pass'],
+      prices: '0.70€ - 2.00€ for single tickets',
+      whereToBuy: 'Mobile app (IDS BK), orange/red ticket machines at stops (not all stops), onboard buses/trams',
+      paymentMethods: 'Card, cash (machines), mobile app'
+    },
+    transport: ['Tram', 'Bus', 'Trolleybus', 'Night buses'],
+    culturalTips: [
+      'Validate your ticket in the yellow validator when boarding',
+      'Ticket inspectors are common, always have a valid ticket',
+      'Night transport runs on weekends'
+    ],
+    officialLinks: {
+      website: 'https://imhd.sk/ba',
+      app: 'IDS BK mobile app',
+      planner: 'https://imhd.sk/ba'
+    },
+    verified: true
+  },
+  {
+    id: 'banska-bystrica',
+    name: 'Banská Bystrica',
+    country: 'Slovakia',
+    image: 'https://cdn.banskabystrica.sk/2023/07/image00040-1200x900.jpeg',
+    ticketing: {
+      types: ['Single ticket', 'Transfer ticket', 'Monthly pass'],
+      prices: '0.60€ - 1.00€ for single tickets',
+      whereToBuy: 'Primarily from the driver, some kiosks',
+      paymentMethods: 'Cash only on buses (exact change recommended)'
+    },
+    transport: ['Bus', 'Trolleybus'],
+    culturalTips: [
+      'Most people buy tickets directly from the driver',
+      'Bring exact change or small bills',
+      'Validate your ticket in the machine after boarding'
+    ],
+    officialLinks: {
+      website: 'https://www.dpmbb.sk/',
+      planner: 'https://www.dpmbb.sk/'
+    },
+    verified: true
+  },
+  {
+    id: 'porto',
+    name: 'Porto',
+    country: 'Portugal',
+    image: 'https://images.pexels.com/photos/35339987/pexels-photo-35339987.jpeg',
+    ticketing: {
+      types: ['Andante 24h', 'Andante Tour', 'Z2 single', 'Z3 single'],
+      prices: '1.30€ - 7.00€ depending on zones',
+      whereToBuy: 'Andante machines at metro/train stations, tourist offices',
+      paymentMethods: 'Card, cash (machines)'
+    },
+    transport: ['Metro', 'Bus', 'Tram', 'Train (CP urban lines)'],
+    culturalTips: [
+      'Some tickets are valid across multiple transport types',
+      'Metro and urban trains use the same ticketing system',
+      'Historic tram line has separate ticketing',
+      'Validate your Andante card at validators'
+    ],
+    officialLinks: {
+      website: 'https://www.stcp.pt/',
+      metro: 'https://www.metrodoporto.pt/',
+      planner: 'https://www.stcp.pt/'
+    },
+    verified: true
+  }
+];
+
+const initialUserContent = [
+  {
+    id: 1,
+    cityId: 'bratislava',
+    type: 'tip',
+    author: 'Martin K.',
+    date: '2024-11-15',
+    content: 'The ticket machines at Hlavná stanica often have long queues. Download the IDS BK app before you arrive!',
+    upvotes: 24,
+    verified: false
+  },
+  {
+    id: 2,
+    cityId: 'banska-bystrica',
+    type: 'tip',
+    author: 'Jana S.',
+    date: '2024-10-22',
+    content: 'Drivers are very helpful if you don\'t speak Slovak. Just show them your destination and they\'ll help.',
+    upvotes: 15,
+    verified: false
+  },
+  {
+    id: 3,
+    cityId: 'porto',
+    type: 'warning',
+    author: 'Carlos M.',
+    date: '2024-12-01',
+    content: 'Don\'t confuse the historic tram line 1 with the regular trams - different tickets!',
+    upvotes: 31,
+    verified: false
+  }
+];
+
+// Header Component
+function Header({ user, onLogin, onLogout }) {
+  return (
+    <header className="header">
+      <div className="container header-content">
+        <Link to="/" className="logo">
+          <span className="logo-icon">🚊</span>
+          <span className="logo-text">Transit Guide</span>
+        </Link>
+        <nav className="nav">
+          <Link to="/" className="nav-link">Cities</Link>
+          <Link to="/about" className="nav-link">About</Link>
+          {user ? (
+            <>
+              <Link to="/contribute" className="nav-link">Contribute</Link>
+              <span className="nav-user">👤 {user.name}</span>
+              <button onClick={onLogout} className="btn-secondary">Logout</button>
+            </>
+          ) : (
+            <button onClick={onLogin} className="btn-primary">Login</button>
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+// Home Page - City List
+function HomePage({ cities, onSearch }) {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredCities = cities.filter(city =>
+    city.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    city.country.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="container">
+      <div className="hero">
+        <h1>Navigate Any City's Public Transport</h1>
+        <p>Community-driven guides combining official information with local insights</p>
+      </div>
+
+      <div className="search-box">
+        <input
+          type="text"
+          placeholder="Search for a city..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+        />
+      </div>
+
+      <div className="city-grid">
+        {filteredCities.map(city => (
+          <Link to={`/city/${city.id}`} key={city.id} className="city-card">
+            {city.image && (
+              <img src={city.image} alt={city.name} className="city-card-image" />
+            )}
+            <div className="city-card-content">
+              <div className="city-card-header">
+                <h3>{city.name}</h3>
+                {city.verified && <span className="badge-verified">✓ Verified</span>}
+              </div>
+              <p className="city-country">{city.country}</p>
+              <div className="city-transport-icons">
+                {city.transport.map(mode => (
+                  <span key={mode} className="transport-badge">{mode}</span>
+                ))}
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {filteredCities.length === 0 && (
+        <div className="empty-state">
+          <p>No cities found. Want to add this city?</p>
+          <button className="btn-primary">Suggest a City</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// City Detail Page
+function CityPage({ cities, userContent, user, onAddContent }) {
+  const { cityId } = useParams();
+  const city = cities.find(c => c.id === cityId);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [showContributeForm, setShowContributeForm] = useState(false);
+
+  if (!city) {
+    return <div className="container"><h2>City not found</h2></div>;
+  }
+
+  const cityContent = userContent.filter(c => c.cityId === cityId);
+
+  return (
+    <div className="container">
+      <div className="city-header">
+        <div>
+          <h1>{city.name}</h1>
+          <p className="city-subtitle">{city.country}</p>
+        </div>
+        {city.verified && <span className="badge-verified-large">✓ Verified Official Data</span>}
+      </div>
+
+      <div className="tabs">
+        <button
+          className={`tab ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          Overview
+        </button>
+        <button
+          className={`tab ${activeTab === 'community' ? 'active' : ''}`}
+          onClick={() => setActiveTab('community')}
+        >
+          Community Tips ({cityContent.length})
+        </button>
+        <button
+          className={`tab ${activeTab === 'photos' ? 'active' : ''}`}
+          onClick={() => setActiveTab('photos')}
+        >
+          Photos
+        </button>
+      </div>
+
+      {activeTab === 'overview' && (
+        <div className="city-content">
+          <section className="info-section">
+            <h2>🎫 Ticketing System</h2>
+            <div className="info-card">
+              <div className="info-row">
+                <strong>Ticket Types:</strong>
+                <ul>
+                  {city.ticketing.types.map((type, idx) => (
+                    <li key={idx}>{type}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="info-row">
+                <strong>Prices:</strong>
+                <span>{city.ticketing.prices}</span>
+              </div>
+              <div className="info-row">
+                <strong>Where to Buy:</strong>
+                <span>{city.ticketing.whereToBuy}</span>
+              </div>
+              <div className="info-row">
+                <strong>Payment Methods:</strong>
+                <span>{city.ticketing.paymentMethods}</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="info-section">
+            <h2>🚇 Transport Modes</h2>
+            <div className="transport-modes">
+              {city.transport.map(mode => (
+                <span key={mode} className="transport-badge-large">{mode}</span>
+              ))}
+            </div>
+          </section>
+
+          <section className="info-section">
+            <h2>💡 Cultural Tips & Etiquette</h2>
+            <ul className="tips-list">
+              {city.culturalTips.map((tip, idx) => (
+                <li key={idx}>{tip}</li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="info-section">
+            <h2>🔗 Official Resources</h2>
+            <div className="links-grid">
+              {city.officialLinks.website && (
+                <a href={city.officialLinks.website} target="_blank" rel="noopener noreferrer" className="link-card">
+                  <strong>Official Website</strong>
+                  <span>→</span>
+                </a>
+              )}
+              {city.officialLinks.app && (
+                <div className="link-card">
+                  <strong>Mobile App</strong>
+                  <span>{city.officialLinks.app}</span>
+                </div>
+              )}
+              {city.officialLinks.planner && (
+                <a href={city.officialLinks.planner} target="_blank" rel="noopener noreferrer" className="link-card">
+                  <strong>Journey Planner</strong>
+                  <span>→</span>
+                </a>
+              )}
+              {city.officialLinks.metro && (
+                <a href={city.officialLinks.metro} target="_blank" rel="noopener noreferrer" className="link-card">
+                  <strong>Metro Info</strong>
+                  <span>→</span>
+                </a>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {activeTab === 'community' && (
+        <div className="city-content">
+          <div className="community-header">
+            <h2>Community Tips & Insights</h2>
+            {user && (
+              <button
+                className="btn-primary"
+                onClick={() => setShowContributeForm(!showContributeForm)}
+              >
+                + Add Tip
+              </button>
+            )}
+          </div>
+
+          {showContributeForm && (
+            <ContributeForm
+              cityId={cityId}
+              user={user}
+              onSubmit={(content) => {
+                onAddContent(content);
+                setShowContributeForm(false);
+              }}
+              onCancel={() => setShowContributeForm(false)}
+            />
+          )}
+
+          <div className="content-list">
+            {cityContent.map(content => (
+              <div key={content.id} className="content-card">
+                <div className="content-header">
+                  <div className="content-author">
+                    <strong>{content.author}</strong>
+                    <span className="content-date">{content.date}</span>
+                  </div>
+                  {content.type === 'warning' && <span className="badge-warning">⚠️ Warning</span>}
+                  {content.verified && <span className="badge-verified">✓ Verified</span>}
+                </div>
+                <p className="content-text">{content.content}</p>
+                <div className="content-footer">
+                  <button className="upvote-btn">👍 {content.upvotes}</button>
+                </div>
+              </div>
+            ))}
+
+            {cityContent.length === 0 && (
+              <div className="empty-state">
+                <p>No community tips yet. Be the first to contribute!</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'photos' && (
+        <div className="city-content">
+          <div className="community-header">
+            <h2>Photos & Visual Guides</h2>
+            {user && (
+              <button className="btn-primary">+ Upload Photo</button>
+            )}
+          </div>
+          <div className="empty-state">
+            <p>Photo gallery coming soon!</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Contribute Form Component
+function ContributeForm({ cityId, user, onSubmit, onCancel }) {
+  const [tipText, setTipText] = useState('');
+  const [tipType, setTipType] = useState('tip');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!tipText.trim()) return;
+
+    const newContent = {
+      id: Date.now(),
+      cityId,
+      type: tipType,
+      author: user.name,
+      date: new Date().toISOString().split('T')[0],
+      content: tipText,
+      upvotes: 0,
+      verified: false
+    };
+
+    onSubmit(newContent);
+    setTipText('');
+  };
+
+  return (
+    <form className="contribute-form" onSubmit={handleSubmit}>
+      <div className="form-group">
+        <label>Type:</label>
+        <select value={tipType} onChange={(e) => setTipType(e.target.value)}>
+          <option value="tip">General Tip</option>
+          <option value="warning">Warning/Issue</option>
+        </select>
+      </div>
+      <div className="form-group">
+        <label>Your Tip:</label>
+        <textarea
+          value={tipText}
+          onChange={(e) => setTipText(e.target.value)}
+          placeholder="Share your experience or insight..."
+          rows="4"
+          required
+        />
+      </div>
+      <div className="form-actions">
+        <button type="submit" className="btn-primary">Submit</button>
+        <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+// About Page
+function AboutPage() {
+  return (
+    <div className="container">
+      <div className="about-content">
+        <h1>About Transit Guide</h1>
+        <p>
+          Transit Guide is a community-driven platform that makes public transport easier to understand
+          in cities worldwide. We combine official information from transport authorities with practical
+          tips and insights from locals and travelers.
+        </p>
+        <h2>Our Mission</h2>
+        <p>
+          Every city has unique quirks in its public transport system - which ticket machines actually work,
+          where you can buy tickets, what payment methods are accepted, and the unwritten rules locals know.
+          We're building a global knowledge base that captures both the official information and the
+          practical reality.
+        </p>
+        <h2>How It Works</h2>
+        <ul>
+          <li><strong>Official Data:</strong> We gather and verify information from transport authorities</li>
+          <li><strong>Community Tips:</strong> Local contributors share practical insights and updates</li>
+          <li><strong>Visual Guides:</strong> Photos help you recognize ticket machines, validators, and signage</li>
+        </ul>
+        <h2>Get Involved</h2>
+        <p>
+          Know your city's transport system? Help travelers and newcomers by contributing tips, photos,
+          and updates. Create an account to start contributing!
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Main App Component
+function App() {
+  const [cities] = useState(initialCities);
+  const [userContent, setUserContent] = useState(initialUserContent);
+  const [user, setUser] = useState(null);
+
+  // Simulate login
+  const handleLogin = () => {
+    setUser({ id: 1, name: 'Demo User', email: 'demo@example.com' });
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+  };
+
+  const handleAddContent = (content) => {
+    setUserContent([content, ...userContent]);
+  };
+
+  return (
+    <Router>
+      <div className="app">
+        <div className="app-stage">
+          <div className="main">
+            <Header user={user} onLogin={handleLogin} onLogout={handleLogout} />
+            <Routes>
+              <Route path="/" element={<HomePage cities={cities} />} />
+              <Route
+                path="/city/:cityId"
+                element={
+                  <CityPage
+                    cities={cities}
+                    userContent={userContent}
+                    user={user}
+                    onAddContent={handleAddContent}
+                  />
+                }
+              />
+              <Route path="/about" element={<AboutPage />} />
+            </Routes>
+            <footer className="footer">
+              <div className="container">
+                <p>© 2024 Transit Guide - Making public transport accessible to everyone</p>
+                <p className="footer-links">
+                  <a href="https://github.com/kebab-py/transit-guide">GitHub</a> · <a href="mailto:contact@transitguide.com">Contact</a> · <a href="https://github.com/kebab-py/transit-guide/blob/main/README.md">About</a>
+                </p>
+              </div>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </Router>
+  );
+}
+
+export default App;
